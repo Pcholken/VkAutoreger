@@ -31,8 +31,6 @@ last_name = \
 
 sex = 0  # 0=male 1=female
 
-birthday = "20.07.2000"
-
 to_subscribe = [324355825]  # Страницы на которые аккаунт подпишется (id)
 
 to_subscribe_communities = []  # Группы на которые аккаунт подпишется (id с минусом)
