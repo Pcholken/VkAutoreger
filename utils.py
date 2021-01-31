@@ -6,27 +6,23 @@
 # 2020   File wtih methods
 #
 # ---------------------------
-import random
-
-from config import *
-
+from random import sample, choice
 import logging
+from os import system, walk
+from string import ascii_lowercase, digits
+from base64 import b64encode
+from time import sleep
 
-import os
-
-import string
-
-import base64
 from twocaptcha import TwoCaptcha
-
-import time
 import requests
 import vk_api
 
+from config import to_subscribe, to_subscribe_communities, rucaptcha_token, captcha_type, log_type, sms_token
+
 
 def generate_password():
-    letters = string.ascii_lowercase + string.digits
-    return 'pcholkenLolzteam' + ''.join(random.sample(letters, 10))
+    letters = ascii_lowercase + digits
+    return 'pcholkenLolzteam' + ''.join(sample(letters, 10))
 
 
 def vk_auth(proxy, login=None, password=None):
@@ -37,7 +33,7 @@ def vk_auth(proxy, login=None, password=None):
     }
     if login and password is not None:
         vk_session.auth()
-        os.system("rm vk_config.v2.json")
+        system("rm vk_config.v2.json")
     return vk_session.get_api()
 
 
@@ -56,27 +52,29 @@ def get_token(login, password, proxy):
 
 
 def subscribe(vk):
-
     for user_id in to_subscribe:
         print(f"Подписка на {user_id}")
-        print(vk.friends.add(user_id=user_id))
-        time.sleep(2)
+        try:
+            vk.friends.add(user_id=user_id)
+        except Exception as captcha:
+            captcha_solver(captcha)
+        sleep(2)
 
     for user_id in to_subscribe_communities:
         print(f"Подписка на {user_id}")
-        print(vk.groups.join(group_id=user_id))
-        time.sleep(1)
+        vk.groups.join(group_id=user_id)
+        sleep(1)
 
 
 def upload_photo(vk):
 
     upload_url = vk.photos.getOwnerPhotoUploadServer()['upload_url']
 
-    for _, _, files in os.walk("photos"):
+    for _, _, files in walk("photos"):
         photos = files
 
     if photos != []:
-        request = requests.post(upload_url, files={'photo': open(f"photos/{random.choice(photos)}", "rb")})
+        request = requests.post(upload_url, files={'photo': open(f"photos/{choice(photos)}", "rb")})
 
         params = {'server': request.json()['server'],
                   'photo': request.json()['photo'],
@@ -85,15 +83,15 @@ def upload_photo(vk):
         vk.photos.saveOwnerPhoto(**params)
 
 
-def captcha_handling(captcha):
-    solver = TwoCaptcha(rucaptcha_token)
+def captcha_solver(captcha):
     try:
         if not captcha_type:  # Ручной ввод
             print(captcha.get_url())
             captcha.try_again(input("Код с картинки => "))
             logging.info("Каптча решена успешно")
         else:
-            code = solver.normal(base64.b64encode(captcha.get_image()).decode("utf-8"))
+            solver = TwoCaptcha(rucaptcha_token)
+            code = solver.normal(b64encode(captcha.get_image()).decode("utf-8"))
             captcha.try_again(code['code'])
             logging.info("Каптча решена успешно")
     except:
@@ -116,7 +114,7 @@ def write_log(login, password, proxy):
     try:
         token, user_id = get_token(login, password, proxy)
     except vk_api.Captcha as captcha:
-        captcha_handling(captcha)
+        captcha_solver(captcha)
         token, user_id = get_token(login, password, proxy)
 
     except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError) as error:
@@ -127,7 +125,7 @@ def write_log(login, password, proxy):
                 break
             except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
                 print(f"Bad proxy {proxy}, reconnect")
-                time.sleep(20)
+                sleep(20)
     except Exception as error:
         logging.error(error)
         print("Ошибка, невозможно получить токен.")
@@ -156,7 +154,7 @@ def write_log(login, password, proxy):
 
 def wait_code(activation_id):
     for i in range(12):
-        time.sleep(5)
+        sleep(5)
         respone = requests.get(
             url=f"https://smshub.org/stubs/handler_api.php?api_key={sms_token}&action=getStatus&id={activation_id}").text
         print(respone)
