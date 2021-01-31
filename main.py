@@ -6,11 +6,17 @@
 # 2020    Autoreger vk.com
 #
 # ----------------------------------
-
+import logging
+import requests
 from threading import Thread
+from time import sleep
+from random import choice, randint
 
-from utils import *
-from config import *
+import vk_api
+
+from utils import vk_auth, answer_from_sms_service, captcha_solver, wait_code, generate_password, write_log,\
+    upload_photo, subscribe, get_proxy
+from config import sms_token, country, first_name, last_name, sex, delay
 
 logging.basicConfig(filename='logs.log',
                     filemode='a',
@@ -30,7 +36,7 @@ def signup(proxy):
     logging.info(args)
 
     if not answer_from_sms_service(args):
-        time.sleep(5)
+        sleep(5)
         signup(proxy)
 
     else:
@@ -40,9 +46,9 @@ def signup(proxy):
         phone = str(args[2])
         try:
             vk.auth.signup(client_id=2274003, client_secret="hHbZxrka2uZ6jB1inYsH", phone=phone,
-                           first_name=random.choice(first_name),
-                           last_name=random.choice(last_name), sex=sex,
-                           birthday=birthday)
+                           first_name=choice(first_name),
+                           last_name=choice(last_name), sex=sex,
+                           birthday=f"{randint(1, 28)}.{randint(1, 12)}.{randint(1980, 2020)}")
 
             confirm_signup(proxy, vk, phone, activation_id)
 
@@ -82,7 +88,7 @@ def signup(proxy):
                     f"action=setStatus&status=8&id={activation_id}")
 
         except vk_api.Captcha as captcha:
-            captcha_handling(captcha)
+            captcha_solver(captcha)
             confirm_signup(proxy, vk, phone, activation_id)
 
 
@@ -119,19 +125,19 @@ def confirm_signup(proxy, vk, phone, activation_id):
         except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
             print(f"Ошибка авторизации Bad proxy {proxy}")
             logging.error(f"Ошибка авторизации Bad proxy {proxy}")
-            time.sleep(20)
+            sleep(20)
         except vk_api.Captcha as captcha:
-            captcha_handling(captcha)
+            captcha_solver(captcha)
 
     try:
         upload_photo(vk)
     except vk_api.Captcha as captcha:
-        captcha_handling(captcha)
+        captcha_solver(captcha)
 
     try:
         subscribe(vk)
     except vk_api.Captcha as captcha:
-        captcha_handling(captcha)
+        captcha_solver(captcha)
 
 
 def main():
@@ -151,7 +157,7 @@ def main():
         for thread in threads:
             thread.join()
         print(f"Задержка на {delay}")
-        time.sleep(delay)
+        sleep(delay)
 
 
 if __name__ == '__main__':
