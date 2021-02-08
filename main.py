@@ -48,7 +48,7 @@ def signup(proxy):
             vk.auth.signup(client_id=2274003, client_secret="hHbZxrka2uZ6jB1inYsH", phone=phone,
                            first_name=choice(first_name),
                            last_name=choice(last_name), sex=sex,
-                           birthday=f"{randint(1, 28)}.{randint(1, 12)}.{randint(1980, 2020)}")
+                           birthday=f"{randint(1, 28)}.{randint(1, 12)}.{randint(1980, 2000)}")
 
             confirm_signup(proxy, vk, phone, activation_id)
 
